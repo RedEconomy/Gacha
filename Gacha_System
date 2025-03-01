@@ -1,0 +1,88 @@
+## Sections:
+1. **Gacha System Definition** - Defines the gacha pull logic with a pity system.
+2. **Spending Simulation** - Runs multiple simulations to estimate the cost of obtaining an Ultra Rare pull.
+3. **Data Visualization** - Generates histograms to analyze spending distribution.
+4. **Saving Data** - Exports results as a CSV for further analysis.
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+"""
+## 1. Define Gacha System
+This class simulates a gacha pull system, including:
+- **Drop rates**: Common, Rare, Super Rare, Ultra Rare.
+- **Pity system**: Guarantees an Ultra Rare pull after a certain number of pulls.
+- **Cost tracking**: Calculates total spending required to obtain an Ultra Rare pull.
+"""
+class GachaSimulator:
+    def __init__(self, pity_threshold=90, cost_per_pull=2):
+        self.rarity_probabilities = {
+            "Common": 0.80,
+            "Rare": 0.15,
+            "Super Rare": 0.04,
+            "Ultra Rare": 0.01
+        }
+        self.pity_threshold = pity_threshold
+        self.cost_per_pull = cost_per_pull
+        self.reset()
+    
+    def reset(self):
+        self.pity_counter = 0
+    
+    def pull(self):
+        self.pity_counter += 1
+        
+        # Check for pity guarantee
+        if self.pity_counter >= self.pity_threshold:
+            self.pity_counter = 0
+            return "Ultra Rare"
+        
+        result = np.random.choice(list(self.rarity_probabilities.keys()), p=list(self.rarity_probabilities.values()))
+        if result == "Ultra Rare":
+            self.pity_counter = 0  # Reset pity counter on Ultra Rare pull
+        return result
+    
+    """
+    ## 2. Simulate Player Spending
+    This function simulates multiple players attempting to pull an Ultra Rare character.
+    - **Tracks spending per player** until they receive an Ultra Rare pull.
+    - **Runs multiple trials** to generate a realistic spending distribution.
+    """
+    def simulate_spending(self, trials=10000):
+        total_spent = []
+        for _ in range(trials):
+            spent = 0
+            self.reset()
+            while self.pull() != "Ultra Rare":
+                spent += self.cost_per_pull
+            total_spent.append(spent)
+        return total_spent
+
+# Run Simulation
+gacha = GachaSimulator()
+spending_data = gacha.simulate_spending()
+
+"""
+## 3. Data Visualization
+This section generates a histogram of spending distribution, showing:
+- **How much players spend on average** to pull an Ultra Rare.
+- **The impact of the pity system** on spending distribution.
+"""
+plt.figure(figsize=(10,5))
+sns.histplot(spending_data, bins=50, kde=True, color='blue')
+plt.xlabel("Total Spending ($)")
+plt.ylabel("Number of Players")
+plt.title("Distribution of Spending for Ultra Rare Pulls")
+plt.show()
+
+"""
+## 4. Save Data for Analysis
+Saves the spending data as a CSV file, allowing further exploration in Excel or pandas.
+"""
+spending_df = pd.DataFrame(spending_data, columns=["Total Spending"])
+spending_df.to_csv("gacha_spending_data.csv", index=False)
+
+print("Simulation complete. Data saved as 'gacha_spending_data.csv'.")
